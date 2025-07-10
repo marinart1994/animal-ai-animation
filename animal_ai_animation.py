@@ -223,14 +223,14 @@ def apply_natural_movement(image, frame_num, total_frames):
     return image
 
 def create_video_from_image(image_path, output_path, duration=5, fps=30, effect='natural'):
-    """이미지를 동영상으로 변환 (최적화된 버전)"""
+    """이미지를 동영상으로 변환 (메모리 최적화 버전)"""
     # 이미지 로드
     image = cv2.imread(image_path)
     if image is None:
         raise ValueError("이미지를 로드할 수 없습니다.")
     
-    # 이미지 크기 조정 (더 작게)
-    max_size = 400  # 800에서 400으로 줄임
+    # 이미지 크기 조정 (매우 작게)
+    max_size = 200  # 400에서 200으로 더 줄임
     height, width = image.shape[:2]
     if max(height, width) > max_size:
         scale = max_size / max(height, width)
@@ -240,9 +240,9 @@ def create_video_from_image(image_path, output_path, duration=5, fps=30, effect=
     
     height, width = image.shape[:2]
     
-    # FPS와 duration 제한 (빠른 처리)
-    fps = min(fps, 15)  # 최대 15fps
-    duration = min(duration, 3)  # 최대 3초
+    # FPS와 duration 제한 (매우 빠른 처리)
+    fps = min(fps, 10)  # 최대 10fps
+    duration = min(duration, 2)  # 최대 2초
     total_frames = duration * fps
     
     # 비디오 작성자 설정
@@ -251,33 +251,67 @@ def create_video_from_image(image_path, output_path, duration=5, fps=30, effect=
     
     try:
         for frame_num in range(total_frames):
-            # 현재 프레임 복사
+            # 메모리 절약을 위해 copy() 대신 직접 수정
             current_frame = image.copy()
             
-            # 간단한 효과만 적용 (빠른 처리)
+            # 가장 간단한 효과만 적용
             if effect == 'natural':
-                # 호흡 효과만 적용 (가장 빠름)
-                current_frame = apply_breathing_effect(current_frame, frame_num, total_frames)
+                # 미세한 호흡 효과만
+                breathing_cycle = math.sin(frame_num * 2 * math.pi / (fps * 2)) * 0.01
+                scale_factor = 1.0 + breathing_cycle
+                new_width = int(width * scale_factor)
+                new_height = int(height * scale_factor)
+                resized = cv2.resize(current_frame, (new_width, new_height))
+                start_x = (new_width - width) // 2
+                start_y = (new_height - height) // 2
+                current_frame = resized[start_y:start_y+height, start_x:start_x+width]
             elif effect == 'breathing':
-                current_frame = apply_breathing_effect(current_frame, frame_num, total_frames)
-            elif effect == 'tail_wagging':
-                current_frame = apply_tail_wagging(current_frame, frame_num, total_frames)
-            elif effect == 'ear_movement':
-                current_frame = apply_ear_movement(current_frame, frame_num, total_frames)
-            elif effect == 'eye_blinking':
-                current_frame = apply_eye_blinking(current_frame, frame_num, total_frames)
-            elif effect == 'head_movement':
-                current_frame = apply_head_movement(current_frame, frame_num, total_frames)
-            elif effect == 'fur_movement':
-                current_frame = apply_fur_movement(current_frame, frame_num, total_frames)
+                breathing_cycle = math.sin(frame_num * 2 * math.pi / (fps * 2)) * 0.01
+                scale_factor = 1.0 + breathing_cycle
+                new_width = int(width * scale_factor)
+                new_height = int(height * scale_factor)
+                resized = cv2.resize(current_frame, (new_width, new_height))
+                start_x = (new_width - width) // 2
+                start_y = (new_height - height) // 2
+                current_frame = resized[start_y:start_y+height, start_x:start_x+width]
+            elif effect == 'zoom_in':
+                # 줌인 효과 (점점 확대)
+                zoom_factor = 1.0 + (frame_num / total_frames) * 0.5  # 50% 확대
+                new_width = int(width * zoom_factor)
+                new_height = int(height * zoom_factor)
+                resized = cv2.resize(current_frame, (new_width, new_height))
+                start_x = (new_width - width) // 2
+                start_y = (new_height - height) // 2
+                current_frame = resized[start_y:start_y+height, start_x:start_x+width]
+            elif effect == 'zoom_out':
+                # 줌아웃 효과 (점점 축소)
+                zoom_factor = 1.5 - (frame_num / total_frames) * 0.5  # 1.5배에서 1.0배로
+                new_width = int(width * zoom_factor)
+                new_height = int(height * zoom_factor)
+                resized = cv2.resize(current_frame, (new_width, new_height))
+                start_x = (new_width - width) // 2
+                start_y = (new_height - height) // 2
+                current_frame = resized[start_y:start_y+height, start_x:start_x+width]
+            elif effect == 'zoom_pulse':
+                # 줌 펄스 효과 (확대-축소 반복)
+                pulse_cycle = math.sin(frame_num * 2 * math.pi / (fps * 1.5)) * 0.2  # 1.5초 주기
+                zoom_factor = 1.0 + pulse_cycle
+                new_width = int(width * zoom_factor)
+                new_height = int(height * zoom_factor)
+                resized = cv2.resize(current_frame, (new_width, new_height))
+                start_x = (new_width - width) // 2
+                start_y = (new_height - height) // 2
+                current_frame = resized[start_y:start_y+height, start_x:start_x+width]
             
             # 프레임을 비디오에 추가
             out.write(current_frame)
+            
+            # 메모리 정리
+            del current_frame
     
     finally:
         out.release()
     
-    # ffmpeg 최적화 제거 (시간 단축)
     return output_path
 
 @app.route('/')
@@ -296,9 +330,9 @@ def upload_file():
     if not allowed_file(file.filename):
         return jsonify({'error': '지원하지 않는 파일 형식입니다.'}), 400
     
-    # 설정 가져오기 (제한된 값으로)
-    duration = min(int(request.form.get('duration', 3)), 3)  # 최대 3초
-    fps = min(int(request.form.get('fps', 15)), 15)  # 최대 15fps
+    # 설정 가져오기 (매우 제한된 값으로)
+    duration = min(int(request.form.get('duration', 2)), 2)  # 최대 2초
+    fps = min(int(request.form.get('fps', 10)), 10)  # 최대 10fps
     effect = request.form.get('effect', 'natural')
     
     # 파일 저장

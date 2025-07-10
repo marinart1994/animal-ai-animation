@@ -1,1 +1,1 @@
-web: gunicorn animal_ai_animation:app --timeout 60 --workers 1 
+web: gunicorn animal_ai_animation:app --timeout 30 --workers 1 --max-requests 1 --max-requests-jitter 0 
