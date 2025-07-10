@@ -223,14 +223,14 @@ def apply_natural_movement(image, frame_num, total_frames):
     return image
 
 def create_video_from_image(image_path, output_path, duration=5, fps=30, effect='natural'):
-    """이미지를 동영상으로 변환"""
+    """이미지를 동영상으로 변환 (최적화된 버전)"""
     # 이미지 로드
     image = cv2.imread(image_path)
     if image is None:
         raise ValueError("이미지를 로드할 수 없습니다.")
     
-    # 이미지 크기 조정 (너무 크면 처리 시간이 오래 걸림)
-    max_size = 800
+    # 이미지 크기 조정 (더 작게)
+    max_size = 400  # 800에서 400으로 줄임
     height, width = image.shape[:2]
     if max(height, width) > max_size:
         scale = max_size / max(height, width)
@@ -239,6 +239,10 @@ def create_video_from_image(image_path, output_path, duration=5, fps=30, effect=
         image = cv2.resize(image, (new_width, new_height))
     
     height, width = image.shape[:2]
+    
+    # FPS와 duration 제한 (빠른 처리)
+    fps = min(fps, 15)  # 최대 15fps
+    duration = min(duration, 3)  # 최대 3초
     total_frames = duration * fps
     
     # 비디오 작성자 설정
@@ -250,9 +254,10 @@ def create_video_from_image(image_path, output_path, duration=5, fps=30, effect=
             # 현재 프레임 복사
             current_frame = image.copy()
             
-            # 효과 적용
+            # 간단한 효과만 적용 (빠른 처리)
             if effect == 'natural':
-                current_frame = apply_natural_movement(current_frame, frame_num, total_frames)
+                # 호흡 효과만 적용 (가장 빠름)
+                current_frame = apply_breathing_effect(current_frame, frame_num, total_frames)
             elif effect == 'breathing':
                 current_frame = apply_breathing_effect(current_frame, frame_num, total_frames)
             elif effect == 'tail_wagging':
@@ -272,21 +277,8 @@ def create_video_from_image(image_path, output_path, duration=5, fps=30, effect=
     finally:
         out.release()
     
-    # 비디오 최적화 (ffmpeg 사용)
-    try:
-        optimized_path = output_path.replace('.mp4', '_optimized.mp4')
-        cmd = [
-            'ffmpeg', '-i', output_path,
-            '-c:v', 'libx264',
-            '-preset', 'medium',
-            '-crf', '23',
-            '-y', optimized_path
-        ]
-        subprocess.run(cmd, check=True, capture_output=True)
-        return optimized_path
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        # ffmpeg가 없으면 원본 반환
-        return output_path
+    # ffmpeg 최적화 제거 (시간 단축)
+    return output_path
 
 @app.route('/')
 def index():
@@ -304,9 +296,9 @@ def upload_file():
     if not allowed_file(file.filename):
         return jsonify({'error': '지원하지 않는 파일 형식입니다.'}), 400
     
-    # 설정 가져오기
-    duration = int(request.form.get('duration', 5))
-    fps = int(request.form.get('fps', 30))
+    # 설정 가져오기 (제한된 값으로)
+    duration = min(int(request.form.get('duration', 3)), 3)  # 최대 3초
+    fps = min(int(request.form.get('fps', 15)), 15)  # 최대 15fps
     effect = request.form.get('effect', 'natural')
     
     # 파일 저장

@@ -1,1 +1,1 @@
-web: gunicorn animal_ai_animation:app 
+web: gunicorn animal_ai_animation:app --timeout 60 --workers 1 
