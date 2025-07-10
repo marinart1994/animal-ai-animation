@@ -8,8 +8,6 @@ import tempfile
 import uuid
 import math
 import random
-import dlib
-import face_recognition
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
@@ -168,65 +166,56 @@ def apply_animal_effects(image, frame_num, total_frames):
     return cropped
 
 def get_face_landmarks(image):
-    """dlib을 이용한 얼굴 랜드마크(68포인트) 검출"""
+    """OpenCV를 이용한 간단한 얼굴 감지"""
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    detector = dlib.get_frontal_face_detector()
-    predictor = dlib.shape_predictor(face_recognition.api.pose_predictor_model_location())
-    faces = detector(gray)
+    face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+    faces = face_cascade.detectMultiScale(gray, 1.1, 4)
+    
     landmarks_list = []
-    for face in faces:
-        shape = predictor(gray, face)
-        landmarks = np.array([[p.x, p.y] for p in shape.parts()])
+    for (x, y, w, h) in faces:
+        # 간단한 랜드마크 생성 (사각형 기반)
+        landmarks = np.array([
+            [x + w//2, y + h//3],      # 왼쪽 눈
+            [x + w//2, y + h//3],      # 오른쪽 눈
+            [x + w//2, y + 2*h//3],    # 코
+            [x + w//2, y + 5*h//6],    # 입
+        ])
         landmarks_list.append(landmarks)
+    
     return landmarks_list
 
 def animate_face_landmarks(image, frame_num, total_frames, landmarks):
-    """랜드마크 기반 눈 깜빡임, 미소, 고개 움직임 애니메이션"""
+    """OpenCV 기반 간단한 얼굴 애니메이션"""
     img = image.copy()
-    # 눈 영역: 36~41(왼쪽), 42~47(오른쪽)
-    left_eye = landmarks[36:42]
-    right_eye = landmarks[42:48]
-    # 입 영역: 48~67
-    mouth = landmarks[48:68]
-    # 코: 27~35, 턱: 0~16
-    # 고개 중심: 30(코끝), 8(턱끝)
-
-    # 1. 눈 깜빡임 (3초 주기)
-    blink_period = 90  # 30fps 기준 3초
-    blink_frame = frame_num % blink_period
-    if 5 < blink_frame < 15:
-        # 눈을 아래로 당겨 닫는 효과
-        for eye_pts in [left_eye, right_eye]:
-            top = np.mean(eye_pts[1:3], axis=0)
-            bottom = np.mean(eye_pts[4:6], axis=0)
-            center = np.mean(eye_pts, axis=0)
-            # 눈 윗부분을 아래로 이동
-            for i in [1,2]:
-                eye_pts[i][1] = (eye_pts[i][1] + bottom[1]) // 2
-            # 눈 아랫부분을 위로 이동
-            for i in [4,5]:
-                eye_pts[i][1] = (eye_pts[i][1] + top[1]) // 2
-            # 폴리곤으로 눈을 덮어줌
-            cv2.fillPoly(img, [eye_pts.astype(np.int32)], (30,30,30))
-
-    # 2. 미소 (6초 주기)
-    smile_period = 180
-    smile_frame = frame_num % smile_period
-    smile_ratio = max(0, np.sin(np.pi * smile_frame / smile_period))
-    if smile_ratio > 0.5:
-        # 입꼬리(48,54)를 위로 이동
-        mouth[0][1] -= int(8 * smile_ratio)
-        mouth[6][1] -= int(8 * smile_ratio)
-        # 입 중앙(62,66)을 아래로 이동
-        mouth[14][1] += int(4 * smile_ratio)
-        mouth[18][1] += int(4 * smile_ratio)
-        cv2.polylines(img, [mouth.astype(np.int32)], isClosed=True, color=(255,180,180), thickness=2)
-
-    # 3. 고개 미세 회전 (좌우 5도)
-    angle = np.sin(2 * np.pi * frame_num / total_frames) * 5
-    M = cv2.getRotationMatrix2D(tuple(np.mean(landmarks, axis=0)), angle, 1.0)
-    img = cv2.warpAffine(img, M, (img.shape[1], img.shape[0]), borderMode=cv2.BORDER_REFLECT)
-
+    
+    if len(landmarks) >= 4:
+        left_eye = landmarks[0]
+        right_eye = landmarks[1]
+        nose = landmarks[2]
+        mouth = landmarks[3]
+        
+        # 1. 눈 깜빡임 (3초 주기)
+        blink_period = 90  # 30fps 기준 3초
+        blink_frame = frame_num % blink_period
+        if 5 < blink_frame < 15:
+            # 눈 영역을 어둡게
+            cv2.circle(img, (int(left_eye[0]), int(left_eye[1])), 10, (30,30,30), -1)
+            cv2.circle(img, (int(right_eye[0]), int(right_eye[1])), 10, (30,30,30), -1)
+        
+        # 2. 미소 (6초 주기)
+        smile_period = 180
+        smile_frame = frame_num % smile_period
+        smile_ratio = max(0, np.sin(np.pi * smile_frame / smile_period))
+        if smile_ratio > 0.5:
+            # 입 주변에 미소 효과
+            cv2.circle(img, (int(mouth[0]), int(mouth[1])), 15, (255,180,180), 2)
+        
+        # 3. 고개 미세 회전 (좌우 5도)
+        center = np.mean(landmarks, axis=0)
+        angle = np.sin(2 * np.pi * frame_num / total_frames) * 5
+        M = cv2.getRotationMatrix2D(tuple(center), angle, 1.0)
+        img = cv2.warpAffine(img, M, (img.shape[1], img.shape[0]), borderMode=cv2.BORDER_REFLECT)
+    
     return img
 
 def create_video_from_image(image_path, output_path, duration=5, fps=30, effect='ai_animate'):

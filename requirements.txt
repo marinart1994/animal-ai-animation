@@ -2,7 +2,5 @@ Flask
 opencv-python
 Pillow
 numpy
-dlib
-face-recognition
 matplotlib
 gunicorn 
