@@ -1,0 +1,1 @@
+web: gunicorn animal_ai_animation:app 
