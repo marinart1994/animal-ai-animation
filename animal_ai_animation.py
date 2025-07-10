@@ -8,8 +8,6 @@ import tempfile
 import uuid
 import math
 import random
-from skimage import measure, morphology
-from skimage.filters import gaussian
 import matplotlib.pyplot as plt
 import io
 import base64
