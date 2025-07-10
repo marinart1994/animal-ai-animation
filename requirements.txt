@@ -1,0 +1,10 @@
+Flask==3.1.1
+opencv-python==4.11.0.86
+Pillow==11.3.0
+numpy==2.3.0
+dlib==19.24.2
+face-recognition==1.3.0
+mediapipe
+scikit-image==0.21.0
+matplotlib==3.7.2
+gunicorn==21.2.0 

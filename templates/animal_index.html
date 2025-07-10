@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🐾 AI 동물 애니메이션 변환기</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.8em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+            margin-bottom: 20px;
+        }
+
+        .features {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        .feature {
+            background: rgba(255,255,255,0.2);
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-size: 0.9em;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .upload-area {
+            border: 3px dashed #ddd;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: #f8f9ff;
+        }
+
+        .upload-area:hover {
+            border-color: #667eea;
+            background-color: #f0f4ff;
+        }
+
+        .upload-area.dragover {
+            border-color: #667eea;
+            background-color: #e8f0ff;
+        }
+
+        .upload-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .settings {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .settings h3 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .form-group select,
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group select:focus,
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .effect-description {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+            line-height: 1.4;
+        }
+
+        .submit-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .result {
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .download-btn {
+            background: #28a745;
+            color: white;
+            text-decoration: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            display: inline-block;
+            margin-top: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .download-btn:hover {
+            background: #218838;
+            transform: translateY(-1px);
+        }
+
+        .preview {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .preview img {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .examples {
+            margin-top: 40px;
+            text-align: center;
+        }
+
+        .examples h3 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .example-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .example-item {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .example-item img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🐾 AI 동물 애니메이션 변환기</h1>
+            <p>정적인 동물 사진을 AI로 자연스럽게 움직이는 영상으로 변환하세요!</p>
+            <div class="features">
+                <div class="feature">🐕 호흡 효과</div>
+                <div class="feature">👂 귀 움직임</div>
+                <div class="feature">👁️ 눈 깜빡임</div>
+                <div class="feature">🦮 꼬리 흔들기</div>
+                <div class="feature">🦊 털 움직임</div>
+            </div>
+        </div>
+
+        <div class="content">
+            <form id="uploadForm" enctype="multipart/form-data">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📸</div>
+                    <h3>동물 사진을 업로드하세요</h3>
+                    <p>PNG, JPG, JPEG, GIF, BMP, TIFF 파일을 지원합니다</p>
+                    <input type="file" id="fileInput" name="file" class="file-input" accept="image/*">
+                </div>
+
+                <div class="preview" id="preview" style="display: none;">
+                    <h4>미리보기</h4>
+                    <img id="previewImage" src="" alt="미리보기">
+                </div>
+
+                <div class="settings">
+                    <h3>🎬 애니메이션 설정</h3>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="effect">애니메이션 효과</label>
+                            <select id="effect" name="effect">
+                                <option value="natural">자연스러운 움직임 (모든 효과)</option>
+                                <option value="breathing">호흡 효과만</option>
+                                <option value="tail_wagging">꼬리 흔들기만</option>
+                                <option value="ear_movement">귀 움직임만</option>
+                                <option value="eye_blinking">눈 깜빡임만</option>
+                                <option value="head_movement">고개 움직임만</option>
+                                <option value="fur_movement">털 움직임만</option>
+                            </select>
+                            <div class="effect-description">동물의 자연스러운 움직임을 선택하세요</div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="duration">영상 길이 (초)</label>
+                            <select id="duration" name="duration">
+                                <option value="3">3초</option>
+                                <option value="5" selected>5초</option>
+                                <option value="8">8초</option>
+                                <option value="10">10초</option>
+                            </select>
+                            <div class="effect-description">생성할 영상의 길이를 선택하세요</div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="fps">프레임 레이트</label>
+                        <select id="fps" name="fps">
+                            <option value="24">24 FPS (영화 품질)</option>
+                            <option value="30" selected>30 FPS (표준)</option>
+                            <option value="60">60 FPS (고품질)</option>
+                        </select>
+                        <div class="effect-description">높은 FPS는 더 부드러운 움직임을 제공하지만 파일 크기가 커집니다</div>
+                    </div>
+                </div>
+
+                <button type="submit" class="submit-btn" id="submitBtn">
+                    🎬 AI 애니메이션 생성하기
+                </button>
+            </form>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>AI가 동물을 살아있게 만들고 있습니다...</p>
+                <p style="font-size: 0.9em; color: #666;">잠시만 기다려주세요 (30초-2분 소요)</p>
+            </div>
+
+            <div class="result" id="result"></div>
+
+            <div class="examples">
+                <h3>💡 사용 팁</h3>
+                <div class="example-grid">
+                    <div class="example-item">
+                        <h4>🐕 강아지</h4>
+                        <p>정면을 바라보는 사진이 가장 좋은 결과를 보여줍니다</p>
+                    </div>
+                    <div class="example-item">
+                        <h4>🐱 고양이</h4>
+                        <p>귀와 꼬리가 잘 보이는 사진을 사용하세요</p>
+                    </div>
+                    <div class="example-item">
+                        <h4>🦊 여우</h4>
+                        <p>털이 잘 보이는 사진이 자연스러운 움직임을 만듭니다</p>
+                    </div>
+                    <div class="example-item">
+                        <h4>🐰 토끼</h4>
+                        <p>긴 귀가 잘 보이는 사진을 선택하세요</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const preview = document.getElementById('preview');
+        const previewImage = document.getElementById('previewImage');
+        const uploadForm = document.getElementById('uploadForm');
+        const loading = document.getElementById('loading');
+        const result = document.getElementById('result');
+        const submitBtn = document.getElementById('submitBtn');
+
+        // 드래그 앤 드롭
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                handleFileSelect(files[0]);
+            }
+        });
+
+        // 파일 선택
+        uploadArea.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileSelect(e.target.files[0]);
+            }
+        });
+
+        function handleFileSelect(file) {
+            if (!file.type.startsWith('image/')) {
+                alert('이미지 파일을 선택해주세요.');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewImage.src = e.target.result;
+                preview.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // 폼 제출
+        uploadForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(uploadForm);
+            
+            if (!formData.get('file')) {
+                alert('파일을 선택해주세요.');
+                return;
+            }
+
+            // UI 상태 변경
+            submitBtn.disabled = true;
+            submitBtn.textContent = '처리 중...';
+            loading.style.display = 'block';
+            result.innerHTML = '';
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    result.innerHTML = `
+                        <div class="success">
+                            <h3>🎉 애니메이션 생성 완료!</h3>
+                            <p>동물이 살아있는 것처럼 움직이는 영상이 만들어졌습니다.</p>
+                            <a href="${data.download_url}" class="download-btn" download>
+                                📥 영상 다운로드
+                            </a>
+                        </div>
+                    `;
+                } else {
+                    result.innerHTML = `
+                        <div class="error">
+                            <h3>❌ 오류 발생</h3>
+                            <p>${data.error}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                result.innerHTML = `
+                    <div class="error">
+                        <h3>❌ 네트워크 오류</h3>
+                        <p>서버와의 연결에 문제가 발생했습니다. 다시 시도해주세요.</p>
+                    </div>
+                `;
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = '🎬 AI 애니메이션 생성하기';
+                loading.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html> 
